@@ -33,6 +33,6 @@ pub const LET: &str = "LET";
 // -- end token constants --
 
 pub struct Token {
-    pub Type: TokenType,
-    pub Literal: String,
+    pub token_type: TokenType,
+    pub literal: String,
 }
