@@ -36,3 +36,13 @@ pub struct Token {
     pub token_type: TokenType,
     pub literal: String,
 }
+
+impl Token {
+    pub fn lookup_token_type(ident: &str) -> &str {
+        match ident {
+            "fn" => FUNCTION,
+            "let" => LET,
+            _ => IDENT,
+        }
+    }
+}
