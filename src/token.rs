@@ -16,8 +16,14 @@ pub enum TokenType {
     INT,   // 134356
 
     // Operators
-    ASSIGN, // =
-    PLUS,   // +
+    ASSIGN,   // =
+    PLUS,     // +
+    MINUS,    // -
+    BANG,     // !
+    ASTERISK, // *
+    SLASH,    // /
+    LT,       // <
+    GT,       // >
 
     // Delimiters
     COMMA,     // ,
@@ -47,6 +53,12 @@ impl fmt::Display for TokenType {
             TokenType::INT => "INT",
             TokenType::ASSIGN => "=",
             TokenType::PLUS => "+",
+            TokenType::MINUS => "-",
+            TokenType::BANG => "!",
+            TokenType::ASTERISK => "*",
+            TokenType::SLASH => "/",
+            TokenType::LT => "<",
+            TokenType::GT => ">",
             TokenType::COMMA => ",",
             TokenType::SEMICOLON => ";",
             TokenType::LPAREN => "(",

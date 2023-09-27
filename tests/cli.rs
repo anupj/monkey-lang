@@ -51,10 +51,14 @@ fn test_next_token_single_chars() {
 fn test_next_token_complex_input() {
     let input = r#"let five = 5;
 let ten = 10;
+
 let add = fn(x, y) {
   x + y;
 };
-let result = add(five, ten);"#;
+
+let result = add(five, ten);
+!-/*5;
+5 < 10 > 5;"#;
 
     let mut lexer = Lexer::new(input.to_string());
 
@@ -94,6 +98,18 @@ let result = add(five, ten);"#;
         (TokenType::COMMA, ","),
         (TokenType::IDENT, "ten"),
         (TokenType::RPAREN, ")"),
+        (TokenType::SEMICOLON, ";"),
+        (TokenType::BANG, "!"),
+        (TokenType::MINUS, "-"),
+        (TokenType::SLASH, "/"),
+        (TokenType::ASTERISK, "*"),
+        (TokenType::INT, "5"),
+        (TokenType::SEMICOLON, ";"),
+        (TokenType::INT, "5"),
+        (TokenType::LT, "<"),
+        (TokenType::INT, "10"),
+        (TokenType::GT, ">"),
+        (TokenType::INT, "5"),
         (TokenType::SEMICOLON, ";"),
         (TokenType::EOF, ""),
     ];

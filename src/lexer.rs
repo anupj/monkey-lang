@@ -39,11 +39,17 @@ impl Lexer {
 
         let (token_type, literal) = match self.ch {
             '=' => (TokenType::ASSIGN, self.ch.to_string()),
+            '+' => (TokenType::PLUS, self.ch.to_string()),
+            '-' => (TokenType::MINUS, self.ch.to_string()),
+            '!' => (TokenType::BANG, self.ch.to_string()),
+            '*' => (TokenType::ASTERISK, self.ch.to_string()),
+            '/' => (TokenType::SLASH, self.ch.to_string()),
+            '<' => (TokenType::LT, self.ch.to_string()),
+            '>' => (TokenType::GT, self.ch.to_string()),
             ';' => (TokenType::SEMICOLON, self.ch.to_string()),
             '(' => (TokenType::LPAREN, self.ch.to_string()),
             ')' => (TokenType::RPAREN, self.ch.to_string()),
             ',' => (TokenType::COMMA, self.ch.to_string()),
-            '+' => (TokenType::PLUS, self.ch.to_string()),
             '{' => (TokenType::LBRACE, self.ch.to_string()),
             '}' => (TokenType::RBRACE, self.ch.to_string()),
             '\0' => (TokenType::EOF, "".to_string()),
