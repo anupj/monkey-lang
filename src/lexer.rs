@@ -30,6 +30,62 @@ impl Lexer {
         lexer
     }
 
+    pub fn next_token(&mut self) -> Token {
+        self.skip_whitespace();
+
+        // In order to avoid calling read_char twice
+        // characters that are numeric or alphabetic
+        let mut should_read_char = true;
+
+        let (token_type, literal) = match self.ch {
+            '=' => (TokenType::ASSIGN, self.ch.to_string()),
+            ';' => (TokenType::SEMICOLON, self.ch.to_string()),
+            '(' => (TokenType::LPAREN, self.ch.to_string()),
+            ')' => (TokenType::RPAREN, self.ch.to_string()),
+            ',' => (TokenType::COMMA, self.ch.to_string()),
+            '+' => (TokenType::PLUS, self.ch.to_string()),
+            '{' => (TokenType::LBRACE, self.ch.to_string()),
+            '}' => (TokenType::RBRACE, self.ch.to_string()),
+            '\0' => (TokenType::EOF, "".to_string()),
+            // If the character is alphabetic, read an
+            // identifier
+            ch if Self::is_letter(ch) => {
+                let ident = self.read_identifier();
+                let token_type = Self::lookup_ident(&ident);
+                // don't call read_char again because
+                // you called it inside `read_identifier()`
+                should_read_char = false;
+                (token_type, ident)
+            }
+            // If the character is numeric, read a number
+            ch if ch.is_numeric() => {
+                let number = self.read_number();
+                // don't call read_char again because
+                // you called it inside `read_number()`
+                should_read_char = false;
+                (TokenType::INT, number)
+            }
+            // if EOF or unknown character, set token to ILLEGAL
+            _ => (TokenType::ILLEGAL, self.ch.to_string()),
+        };
+
+        // Conditionally advance the lexer to the next character
+        if should_read_char {
+            self.read_char();
+        }
+        Token {
+            token_type,
+            literal,
+        }
+    }
+
+    // Skip over any whitespace characters
+    fn skip_whitespace(&mut self) {
+        while self.ch.is_whitespace() {
+            self.read_char();
+        }
+    }
+
     // The purpose of `read_char` is to give us
     // the next character and advance our position
     // in the input string.
@@ -87,62 +143,6 @@ impl Lexer {
             "fn" => TokenType::FUNCTION,
             "let" => TokenType::LET,
             _ => TokenType::IDENT,
-        }
-    }
-
-    pub fn next_token(&mut self) -> Token {
-        self.skip_whitespace();
-
-        // In order to avoid calling read_char twice
-        // characters that are numeric or alphabetic
-        let mut should_read_char = true;
-
-        let (token_type, literal) = match self.ch {
-            '=' => (TokenType::ASSIGN, self.ch.to_string()),
-            ';' => (TokenType::SEMICOLON, self.ch.to_string()),
-            '(' => (TokenType::LPAREN, self.ch.to_string()),
-            ')' => (TokenType::RPAREN, self.ch.to_string()),
-            ',' => (TokenType::COMMA, self.ch.to_string()),
-            '+' => (TokenType::PLUS, self.ch.to_string()),
-            '{' => (TokenType::LBRACE, self.ch.to_string()),
-            '}' => (TokenType::RBRACE, self.ch.to_string()),
-            '\0' => (TokenType::EOF, "".to_string()),
-            // If the character is alphabetic, read an
-            // identifier
-            ch if Self::is_letter(ch) => {
-                let ident = self.read_identifier();
-                let token_type = Self::lookup_ident(&ident);
-                // don't call read_char again because
-                // you called it inside `read_identifier()`
-                should_read_char = false;
-                (token_type, ident)
-            }
-            // If the character is numeric, read a number
-            ch if ch.is_numeric() => {
-                let number = self.read_number();
-                // don't call read_char again because
-                // you called it inside `read_number()`
-                should_read_char = false;
-                (TokenType::INT, number)
-            }
-            // if EOF or unknown character, set token to ILLEGAL
-            _ => (TokenType::ILLEGAL, self.ch.to_string()),
-        };
-
-        // Conditionally advance the lexer to the next character
-        if should_read_char {
-            self.read_char();
-        }
-        Token {
-            token_type,
-            literal,
-        }
-    }
-
-    // Skip over any whitespace characters
-    fn skip_whitespace(&mut self) {
-        while self.ch.is_whitespace() {
-            self.read_char();
         }
     }
 }
