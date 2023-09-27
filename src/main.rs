@@ -1,6 +1,13 @@
-mod lexer;
-mod token;
-
 fn main() {
-    println!("Hello, world!");
+    // Check if `run` from the library
+    // returns an error..
+    if let Err(e) = monkey_lang::run() {
+        // if it does then eprint it and
+        // `eprintln` prints to STDERR instead
+        // of to STDOUT
+        eprintln!("{}", e);
+        // exit the program with a nonzero value
+        // to indicate an error
+        std::process::exit(1);
+    }
 }

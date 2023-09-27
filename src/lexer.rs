@@ -1,14 +1,16 @@
-use crate::token::*;
+// Temporarily allowing unused to
+// avoid the slightly annoying dead_code lint
+// warning messages
+#![allow(unused)]
 
-#[derive(Debug)]
-struct Lexer {
+use crate::token::{Token, TokenType};
+
+pub struct Lexer {
     input: String,
-    // current pos in input (points to current char)
-    position: u32,
-    // current reading pos in input (after current char)
-    read_position: u32,
-    // current char under examination
-    ch: u8,
+    position: i32,      // current position in input (points to current char)
+    read_position: i32, // current reading position in input (after current char)
+    ch: char,           // current char under examination
+                        /* Lexer only supports ASCII character */
 }
 
 impl Lexer {
@@ -17,376 +19,94 @@ impl Lexer {
             input,
             position: 0,
             read_position: 0,
-            ch: 0,
+            ch: '\0',
         };
+        // Call `read_char` so that the
+        // Lexer is in fully working state before
+        // anyone calls `next_token()`, with
+        // `position` and `read_position` already
+        // initialised
         lexer.read_char();
         lexer
     }
 
-    /// Reads the `char` pointed by
-    /// `read_position` i.e. sets `self.ch`
-    /// to the character that `read_position` points to;
-    /// and advances `read_postion` by 1, and sets
-    /// `position` to previous read_position.
+    // The purpose of `read_char` is to give us
+    // the next character and advance our position
+    // in the input string.
     pub fn read_char(&mut self) {
-        if self.read_position >= self.input.len() as u32 {
-            self.ch = 0;
+        // First check if we've reached the end of the
+        // input..
+        if self.read_position >= self.input.len() as i32 {
+            // .. and if we have reached the end
+            // then set `ch` to '\0'
+            // which signifies *we haven't read anything yet*
+            // or *end of file*.
+            self.ch = '\0'; // end of file OR haven't read anything yet
         } else {
-            self.ch = self.input.chars().nth(self.read_position as usize).unwrap() as u8;
+            // if we haven't reached the end of the input yet then
+            // it sets `ch` to the next character
+            // remember that `read_position` always points to the next
+            // character
+            self.ch = self.input.chars().nth(self.read_position as usize).unwrap();
         }
-        // We read the current `char`, now advance
-        // our position in the `input` string.
-        // Point `position` to the next character..
         self.position = self.read_position;
-        // ..Point `read_position` to the character after that
         self.read_position += 1;
     }
 
-    /// Look at the current character under
-    /// examination `self.ch` and return a token
-    /// depending on which character it is.
-    /// Before returning the token advance
-    /// our pointer by calling `read_char()`
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
-        let next_t = match self.ch {
-            0 => Token {
-                token_type: EOF.to_string(),
+
+        let token = match self.ch {
+            '=' => Token {
+                token_type: TokenType::ASSIGN,
+                literal: self.ch.to_string(),
+            },
+            ';' => Token {
+                token_type: TokenType::SEMICOLON,
+                literal: self.ch.to_string(),
+            },
+            '(' => Token {
+                token_type: TokenType::LPAREN,
+                literal: self.ch.to_string(),
+            },
+            ')' => Token {
+                token_type: TokenType::RPAREN,
+                literal: self.ch.to_string(),
+            },
+            ',' => Token {
+                token_type: TokenType::COMMA,
+                literal: self.ch.to_string(),
+            },
+            '+' => Token {
+                token_type: TokenType::PLUS,
+                literal: self.ch.to_string(),
+            },
+            '{' => Token {
+                token_type: TokenType::LBRACE,
+                literal: self.ch.to_string(),
+            },
+            '}' => Token {
+                token_type: TokenType::RBRACE,
+                literal: self.ch.to_string(),
+            },
+            '\0' => Token {
+                token_type: TokenType::EOF,
                 literal: "".to_string(),
             },
-            b'=' => Token {
-                token_type: ASSIGN.to_string(),
-                literal: "=".to_string(),
-            },
-            b';' => Token {
-                token_type: SEMICOLON.to_string(),
-                literal: ";".to_string(),
-            },
-            b'+' => Token {
-                token_type: PLUS.to_string(),
-                literal: "+".to_string(),
-            },
-            b'(' => Token {
-                token_type: LPAREN.to_string(),
-                literal: "(".to_string(),
-            },
-            b')' => Token {
-                token_type: RPAREN.to_string(),
-                literal: ")".to_string(),
-            },
-            b'{' => Token {
-                token_type: LBRACE.to_string(),
-                literal: "{".to_string(),
-            },
-            b'}' => Token {
-                token_type: RBRACE.to_string(),
-                literal: "}".to_string(),
-            },
-            b',' => Token {
-                token_type: COMMA.to_string(),
-                literal: ",".to_string(),
-            },
-            b'a'..=b'z' | b'A'..=b'Z' | b'_' => {
-                let identifier = self.read_identifier();
-                Token {
-                    literal: identifier.to_string(),
-                    token_type: Token::lookup_token_type(identifier).to_string(),
-                }
-            }
-            b'0'..=b'9' => {
-                let literal: String = self.read_number();
-                return Token {
-                    literal,
-                    token_type: INT.to_string(),
-                };
-            }
             _ => Token {
-                token_type: ILLEGAL.to_string(),
-                literal: (self.ch as char).to_string(),
+                token_type: TokenType::ILLEGAL,
+                literal: self.ch.to_string(),
             },
         };
 
-        // Now advance our pointer
-        // so when we call `next_token` again
-        // the `self.ch` field is already updated
         self.read_char();
-        next_t
+        token
     }
 
-    /// skip/eat/ignore whitespace
+    // Skip over any whitespace characters
     fn skip_whitespace(&mut self) {
-        while self.ch == b' ' || self.ch == b'\t' || self.ch == b'\n' || self.ch == b'\r' {
+        while self.ch.is_whitespace() {
             self.read_char();
-        }
-    }
-
-    /// Reads in an identifier and advances
-    /// our lexer's positions until it encounters
-    /// a non-letter character.
-    fn read_identifier(&mut self) -> &str {
-        let position = self.position as usize;
-        while self.is_letter() {
-            self.read_char();
-        }
-        let end_position = self.position as usize;
-
-        // I have to compensate for an extra
-        // call to `read_char` here
-        self.read_position = self.position;
-        self.position = self.position - 1;
-
-        &self.input[position..end_position]
-    }
-
-    /// Check if the character under consideration
-    /// is a letter
-    fn is_letter(&self) -> bool {
-        let ch = self.ch;
-        (ch >= b'a' && ch <= b'z') || (ch >= b'A' && ch <= b'Z') || ch == b'_'
-    }
-
-    /// Check if the character under consideration
-    /// is a number
-    fn read_number(&mut self) -> String {
-        let position = self.position as usize;
-        while self.is_digit() {
-            self.read_char();
-        }
-        self.input[position..self.position as usize].to_string()
-    }
-
-    /// Check if the character under consideration
-    /// is a digit
-    fn is_digit(&self) -> bool {
-        let ch = self.ch;
-        ch >= b'0' && ch <= b'9'
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_next_token_symbols() {
-        let input = "=+(){},;";
-
-        let mut lex = Lexer::new(input.to_string());
-
-        let test_tokens = vec![
-            Token {
-                token_type: ASSIGN.to_string(),
-                literal: "=".to_string(),
-            },
-            Token {
-                token_type: PLUS.to_string(),
-                literal: "+".to_string(),
-            },
-            Token {
-                token_type: LPAREN.to_string(),
-                literal: "(".to_string(),
-            },
-            Token {
-                token_type: RPAREN.to_string(),
-                literal: ")".to_string(),
-            },
-            Token {
-                token_type: LBRACE.to_string(),
-                literal: "{".to_string(),
-            },
-            Token {
-                token_type: RBRACE.to_string(),
-                literal: "}".to_string(),
-            },
-            Token {
-                token_type: COMMA.to_string(),
-                literal: ",".to_string(),
-            },
-            Token {
-                token_type: SEMICOLON.to_string(),
-                literal: ";".to_string(),
-            },
-            Token {
-                token_type: EOF.to_string(),
-                literal: "".to_string(),
-            },
-        ];
-
-        for tt in test_tokens.iter() {
-            let tok = lex.next_token();
-            assert_eq!(tok.token_type, tt.token_type);
-            assert_eq!(tok.literal, tt.literal);
-        }
-    }
-
-    #[test]
-    fn test_next_token_complete() {
-        let input = r#"let five = 5;
-    let ten = 10;
-
-    let add = fn(x,y) {
-          x + y;
-    };
-
-  let result = add(five, ten);"#;
-
-        let mut lex = Lexer::new(input.to_string());
-
-        let test_tokens = vec![
-            Token {
-                token_type: LET.to_string(),
-                literal: "let".to_string(),
-            },
-            Token {
-                token_type: IDENT.to_string(),
-                literal: "five".to_string(),
-            },
-            Token {
-                token_type: ASSIGN.to_string(),
-                literal: "=".to_string(),
-            },
-            Token {
-                token_type: INT.to_string(),
-                literal: "5".to_string(),
-            },
-            Token {
-                token_type: SEMICOLON.to_string(),
-                literal: ";".to_string(),
-            },
-            Token {
-                token_type: LET.to_string(),
-                literal: "let".to_string(),
-            },
-            Token {
-                token_type: IDENT.to_string(),
-                literal: "ten".to_string(),
-            },
-            Token {
-                token_type: ASSIGN.to_string(),
-                literal: "=".to_string(),
-            },
-            Token {
-                token_type: INT.to_string(),
-                literal: "10".to_string(),
-            },
-            Token {
-                token_type: SEMICOLON.to_string(),
-                literal: ";".to_string(),
-            },
-            Token {
-                token_type: LET.to_string(),
-                literal: "let".to_string(),
-            },
-            Token {
-                token_type: IDENT.to_string(),
-                literal: "add".to_string(),
-            },
-            Token {
-                token_type: ASSIGN.to_string(),
-                literal: "=".to_string(),
-            },
-            Token {
-                token_type: FUNCTION.to_string(),
-                literal: "fn".to_string(),
-            },
-            Token {
-                token_type: LPAREN.to_string(),
-                literal: "(".to_string(),
-            },
-            Token {
-                token_type: IDENT.to_string(),
-                literal: "x".to_string(),
-            },
-            Token {
-                token_type: COMMA.to_string(),
-                literal: ",".to_string(),
-            },
-            Token {
-                token_type: IDENT.to_string(),
-                literal: "y".to_string(),
-            },
-            Token {
-                token_type: RPAREN.to_string(),
-                literal: ")".to_string(),
-            },
-            Token {
-                token_type: LBRACE.to_string(),
-                literal: "{".to_string(),
-            },
-            Token {
-                token_type: IDENT.to_string(),
-                literal: "x".to_string(),
-            },
-            Token {
-                token_type: PLUS.to_string(),
-                literal: "+".to_string(),
-            },
-            Token {
-                token_type: IDENT.to_string(),
-                literal: "y".to_string(),
-            },
-            Token {
-                token_type: SEMICOLON.to_string(),
-                literal: ";".to_string(),
-            },
-            Token {
-                token_type: RBRACE.to_string(),
-                literal: "}".to_string(),
-            },
-            Token {
-                token_type: SEMICOLON.to_string(),
-                literal: ";".to_string(),
-            },
-            Token {
-                token_type: LET.to_string(),
-                literal: "let".to_string(),
-            },
-            Token {
-                token_type: IDENT.to_string(),
-                literal: "result".to_string(),
-            },
-            Token {
-                token_type: ASSIGN.to_string(),
-                literal: "=".to_string(),
-            },
-            Token {
-                token_type: IDENT.to_string(),
-                literal: "add".to_string(),
-            },
-            Token {
-                token_type: LPAREN.to_string(),
-                literal: "(".to_string(),
-            },
-            Token {
-                token_type: IDENT.to_string(),
-                literal: "five".to_string(),
-            },
-            Token {
-                token_type: COMMA.to_string(),
-                literal: ",".to_string(),
-            },
-            Token {
-                token_type: IDENT.to_string(),
-                literal: "ten".to_string(),
-            },
-            Token {
-                token_type: RPAREN.to_string(),
-                literal: ")".to_string(),
-            },
-            Token {
-                token_type: SEMICOLON.to_string(),
-                literal: ";".to_string(),
-            },
-            Token {
-                token_type: EOF.to_string(),
-                literal: "".to_string(),
-            },
-        ];
-
-        for tt in test_tokens.iter() {
-            let tok = lex.next_token();
-            assert_eq!(tok.token_type, tt.token_type);
-            assert_eq!(tok.literal, tt.literal);
         }
     }
 }
