@@ -4,6 +4,7 @@
 #![allow(unused)]
 
 // Various token types used by monkey-lang
+#[allow(non_camel_case_types)]
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
     // Signifies a token/character we don't know about
@@ -24,6 +25,8 @@ pub enum TokenType {
     SLASH,    // /
     LT,       // <
     GT,       // >
+    EQ,       // ==
+    NOT_EQ,   // !=
 
     // Delimiters
     COMMA,     // ,
@@ -64,6 +67,8 @@ impl fmt::Display for TokenType {
             TokenType::SLASH => "/",
             TokenType::LT => "<",
             TokenType::GT => ">",
+            TokenType::EQ => "==",
+            TokenType::NOT_EQ => "!=",
             TokenType::COMMA => ",",
             TokenType::SEMICOLON => ";",
             TokenType::LPAREN => "(",

@@ -38,10 +38,30 @@ impl Lexer {
         let mut should_read_char = true;
 
         let (token_type, literal) = match self.ch {
-            '=' => (TokenType::ASSIGN, self.ch.to_string()),
+            '=' => {
+                // peek ahead to see if the next char is "="
+                if self.peek_char() == '=' {
+                    // if it is then the string is "=="
+                    // consume the next '='
+                    self.read_char();
+                    (TokenType::EQ, "==".to_string())
+                } else {
+                    (TokenType::ASSIGN, self.ch.to_string())
+                }
+            }
+            '!' => {
+                // peek ahead to see if the next char is "="
+                if self.peek_char() == '=' {
+                    // if it is then the string is "!="
+                    // consume the next '='
+                    self.read_char();
+                    (TokenType::NOT_EQ, "!=".to_string())
+                } else {
+                    (TokenType::BANG, self.ch.to_string())
+                }
+            }
             '+' => (TokenType::PLUS, self.ch.to_string()),
             '-' => (TokenType::MINUS, self.ch.to_string()),
-            '!' => (TokenType::BANG, self.ch.to_string()),
             '*' => (TokenType::ASTERISK, self.ch.to_string()),
             '/' => (TokenType::SLASH, self.ch.to_string()),
             '<' => (TokenType::LT, self.ch.to_string()),
@@ -113,6 +133,21 @@ impl Lexer {
         }
         self.position = self.read_position;
         self.read_position += 1;
+    }
+
+    // `peek_char` is very similar to `read_char()`
+    // except that it doesn't increment `lexer.position`.
+    // We only want to "peek" ahead in the input and not
+    // move around in it
+    fn peek_char(&self) -> char {
+        // Check if the next reading position exceeds the length of the input
+        if self.read_position >= self.input.len() as i32 {
+            // Return '\0' to signify EOF or no next character
+            '\0'
+        } else {
+            // Otherwise, return the next character without changing the lexer state
+            self.input.chars().nth(self.read_position as usize).unwrap()
+        }
     }
 
     // Read and return a number
