@@ -1,7 +1,7 @@
 fn main() {
     // Check if `run` from the library
     // returns an error..
-    if let Err(e) = monkey_lang::run() {
+    if let Err(e) = monkey_lang::start_repl() {
         // if it does then eprint it and
         // `eprintln` prints to STDERR instead
         // of to STDOUT
