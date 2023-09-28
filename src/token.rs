@@ -37,6 +37,11 @@ pub enum TokenType {
     // Keywords
     FUNCTION,
     LET,
+    TRUE,
+    FALSE,
+    IF,
+    ELSE,
+    RETURN,
 }
 
 use std::fmt;
@@ -67,6 +72,11 @@ impl fmt::Display for TokenType {
             TokenType::RBRACE => "}",
             TokenType::FUNCTION => "FUNCTION",
             TokenType::LET => "LET",
+            TokenType::TRUE => "true",
+            TokenType::FALSE => "false",
+            TokenType::IF => "if",
+            TokenType::ELSE => "else",
+            TokenType::RETURN => "return",
         };
         write!(f, "{}", printable)
     }
