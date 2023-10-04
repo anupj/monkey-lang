@@ -11,15 +11,11 @@ Ball.**
 
 ### Work in Progress
 
-[x] Lexer
-
-[ ] Parser (In progress)
-
-[ ] Evaluation
-
-[ ] Extending the Interpreter
-
-[ ] Finishing touches
+- [x] Lexer
+- [ ] Parser (In progress)
+- [ ] Evaluation
+- [ ] Extending the Interpreter
+- [ ] Finishing touches
 
 ### Language Features
 
