@@ -9,6 +9,18 @@ Rust-based interpreter for the Monkey language.
 [Writing an Interpreter in Go](https://interpreterbook.com/) book by Thorsten
 Ball.**
 
+### Work in Progress
+
+[x] Lexer
+
+[ ] Parser (In progress)
+
+[ ] Evaluation
+
+[ ] Extending the Interpreter
+
+[ ] Finishing touches
+
 ### Language Features
 
 Monkey comes with several features commonly found in modern programming

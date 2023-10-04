@@ -5,7 +5,7 @@
 
 // Various token types used by monkey-lang
 #[allow(non_camel_case_types)]
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
     // Signifies a token/character we don't know about
     ILLEGAL,

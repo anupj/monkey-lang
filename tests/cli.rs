@@ -155,3 +155,38 @@ if (5 < 10) {
         assert_eq!(token.literal, expected_literal);
     }
 }
+
+#[test]
+fn test_parser() {
+    let input = "let x = 5;
+                     let y = 10;
+                     let foobar = 838383;";
+
+    let mut lexer = Lexer::new(input.to_string());
+    let mut parser = Parser::new(&mut lexer);
+
+    let program = parser.parse_program();
+    assert_eq!(program.statements.len(), 3);
+
+    let expected_identifiers = vec!["x", "y", "foobar"];
+
+    for (i, stmt) in program.statements.iter().enumerate() {
+        match stmt.as_ref() {
+            LetStatement {
+                token_type,
+                name,
+                value,
+            } => {
+                // Check the token type
+                assert_eq!(*token_type, crate::token::TokenType::LET);
+
+                // Check the identifier name
+                assert_eq!(name.value, expected_identifiers[i]);
+
+                // Additional checks can be made for the value field,
+                // once expression parsing is implemented
+            }
+            _ => panic!("Expected LetStatement, got something else"),
+        }
+    }
+}

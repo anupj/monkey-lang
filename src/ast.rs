@@ -1,7 +1,9 @@
+use crate::token::TokenType;
+
 /// Ok, so now we are going to write a parser for Monkey lang. Specifically we are
 /// going to write a top down operator precedence parser called recursive descent
 /// parser.
-/// We’re going to start by parsing statements: let and return statements. When we
+/// We’re going to start by parsing statements: `let` and `return` statements. When we
 /// can parse statements and the basic structure of our parser stands, we will look
 /// at expressions and how to parse these. Afterwards we extend the parser to make
 /// it capable of parsing a large subset of the Monkey programming language. As we
@@ -27,30 +29,30 @@
 /// A let statement in Monkey consists of two changing parts: an identifier and an
 /// expression. In the example above x, y and add are identifiers. 10, 15 and the
 /// function literal are expressions.
+/// This file contains the source code for the Abstract Syntax Tree.
 
 /// An AST is a tree of Nodes
-#[derive(Debug)]
 pub trait Node {
     fn token_literal(&self) -> String;
 }
 
 /// A Statement is a type of Node that doesn't
 /// return a value
-#[derive(Debug)]
-pub trait Statement {
+/// Statement is a sub-type of Node
+pub trait Statement: Node {
     fn statement_node(&self) -> String;
 }
 
 /// A Expression is a type of Node that
 /// returns a value
-#[derive(Debug)]
-pub trait Expression {
+/// `Expression` is a sub-type of `Node`
+pub trait Expression: Node {
     fn expression_node(&self) -> String;
 }
 
 /// The program Node is going to be the
-/// root node of every AST. Every valid
-/// program is a series of statements.
+/// root node of every AST our parser produces.
+/// Every valid program is a series of statements.
 pub struct Program {
     // This is a collection of trait objects
     // because we could have different types of
@@ -81,7 +83,13 @@ pub struct LetStatement {
 
 impl Node for LetStatement {
     fn token_literal(&self) -> String {
-        self.token_type.ch.to_string()
+        format!("{:?}", self.token_type)
+    }
+}
+
+impl Statement for LetStatement {
+    fn statement_node(&self) -> String {
+        todo!()
     }
 }
 
@@ -92,6 +100,22 @@ pub struct Identifier {
 
 impl Node for Identifier {
     fn token_literal(&self) -> String {
-        self.token_type.ch.to_string()
+        format!("{:?}", self.token_type)
+    }
+}
+
+/// An `Expression` usually produces a value,
+/// but the identifier in a `let` statement doesn't
+/// produce a value, right? So why is it an `Expression`?
+/// It's to keep things simple. Identifiers in other parts
+/// of the Monkey program do produce values,
+/// e.g: `let x = valueProducingIdentifier;`; and to
+/// keep the num of node types small, we'll use `Identifier`
+/// here to represent the name(for e.g. `x`) in a variable binding and
+/// later reuse it, to represent an identifier as part of or
+/// as a complete expression.
+impl Expression for Identifier {
+    fn expression_node(&self) -> String {
+        todo!()
     }
 }
