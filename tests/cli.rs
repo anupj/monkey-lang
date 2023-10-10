@@ -1,4 +1,6 @@
+use monkey_lang::ast::*;
 use monkey_lang::lexer::*;
+use monkey_lang::parser::*;
 use monkey_lang::token::*;
 
 #[test]
@@ -157,36 +159,68 @@ if (5 < 10) {
 }
 
 #[test]
-fn test_parser() {
-    let input = "let x = 5;
-                     let y = 10;
-                     let foobar = 838383;";
+fn test_let_statements() {
+    let input = String::from(
+        "let x = 5;
+            let y = 10;
+            let foobar = 838383;",
+    );
 
-    let mut lexer = Lexer::new(input.to_string());
+    let mut lexer = Lexer::new(input);
     let mut parser = Parser::new(&mut lexer);
 
-    let program = parser.parse_program();
-    assert_eq!(program.statements.len(), 3);
+    let program = parser
+        .parse_program()
+        .expect("Something went wrong with the parser");
 
-    let expected_identifiers = vec!["x", "y", "foobar"];
+    assert!(
+        !program.statements.is_empty(),
+        "Program should not be empty"
+    );
 
-    for (i, stmt) in program.statements.iter().enumerate() {
-        match stmt.as_ref() {
-            LetStatement {
-                token_type,
-                name,
-                value,
-            } => {
-                // Check the token type
-                assert_eq!(*token_type, crate::token::TokenType::LET);
+    // Check that you have exactly 3 "statements"
+    assert_eq!(
+        program.statements.len(),
+        3,
+        "The program should have 3 `let` statements."
+    );
 
-                // Check the identifier name
-                assert_eq!(name.value, expected_identifiers[i]);
+    let tests = vec!["x", "y", "foobar"];
 
-                // Additional checks can be made for the value field,
-                // once expression parsing is implemented
-            }
-            _ => panic!("Expected LetStatement, got something else"),
-        }
+    for (i, test_case) in tests.iter().enumerate() {
+        let stmt = &program.statements[i];
+        assert!(
+            test_let_statement(stmt, test_case),
+            "Failed `test_let_statement`"
+        );
     }
+}
+
+fn test_let_statement(stmt: &Box<dyn Statement>, expected: &str) -> bool {
+    // I am not using `assert_eq` here because I want to return
+    // false
+    if stmt.token_literal() != "let" {
+        panic!("s.TokenLiteral not 'let'. got={}", stmt.token_literal());
+    }
+
+    if let Some(let_stmt) = stmt.as_any().downcast_ref::<LetStatement>() {
+        if let_stmt.name.value != expected {
+            panic!(
+                "letStmt.Name.Value not '{}'. got={}",
+                expected, let_stmt.name.value
+            );
+        }
+
+        if let_stmt.name.token_literal() != expected {
+            panic!(
+                "letStmt.Name.TokenLiteral() not '{}'. got={}",
+                expected,
+                let_stmt.name.token_literal()
+            );
+        }
+    } else {
+        panic!("s is not LetStatement.");
+    }
+
+    true
 }

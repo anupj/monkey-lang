@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use crate::token::TokenType;
 
 /// Ok, so now we are going to write a parser for Monkey lang. Specifically we are
@@ -41,6 +43,7 @@ pub trait Node {
 /// Statement is a sub-type of Node
 pub trait Statement: Node {
     fn statement_node(&self) -> String;
+    fn as_any(&self) -> &dyn Any;
 }
 
 /// A Expression is a type of Node that
@@ -76,9 +79,9 @@ impl Node for Program {
 /// expression (`5 * 5` or `add(2, 2) * 5`), and the
 /// token type (`let`)
 pub struct LetStatement {
-    pub token_type: TokenType, // the TokenType::LET
-    pub name: Identifier,
-    pub value: Box<dyn Expression>,
+    pub token_type: TokenType,      // the TokenType::LET
+    pub name: Identifier,           // name of the variable
+    pub value: Box<dyn Expression>, // value to be attached to the name/identifier
 }
 
 impl Node for LetStatement {
@@ -91,8 +94,13 @@ impl Statement for LetStatement {
     fn statement_node(&self) -> String {
         todo!()
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
+// The x in `let x = 5;`
 pub struct Identifier {
     pub token_type: TokenType, // the TokenType::IDENT
     pub value: String,
