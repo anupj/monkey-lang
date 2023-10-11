@@ -1,6 +1,6 @@
 use std::any::Any;
 
-use crate::token::TokenType;
+use crate::token::Token;
 
 /// Ok, so now we are going to write a parser for Monkey lang. Specifically we are
 /// going to write a top down operator precedence parser called recursive descent
@@ -53,13 +53,7 @@ pub trait Expression: Node {
     fn expression_node(&self) -> String;
 }
 
-/// The program Node is going to be the
-/// root node of every AST our parser produces.
-/// Every valid program is a series of statements.
 pub struct Program {
-    // This is a collection of trait objects
-    // because we could have different types of
-    // statements in this collection.
     pub statements: Vec<Box<dyn Statement>>,
 }
 
@@ -73,20 +67,15 @@ impl Node for Program {
     }
 }
 
-/// A `LetStatement` represents a let variable binding
-/// `let x = 5;` or `let y = add(2, 2) * 5 / 10;`
-/// So it will hold the identifier (`x` or `y`), the
-/// expression (`5 * 5` or `add(2, 2) * 5`), and the
-/// token type (`let`)
 pub struct LetStatement {
-    pub token_type: TokenType,      // the TokenType::LET
-    pub name: Identifier,           // name of the variable
-    pub value: Box<dyn Expression>, // value to be attached to the name/identifier
+    pub token: Token,
+    pub name: Identifier,
+    pub value: Box<dyn Expression>,
 }
 
 impl Node for LetStatement {
     fn token_literal(&self) -> String {
-        format!("{:?}", self.token_type)
+        self.token.literal.clone()
     }
 }
 
@@ -100,30 +89,33 @@ impl Statement for LetStatement {
     }
 }
 
-// The x in `let x = 5;`
 pub struct Identifier {
-    pub token_type: TokenType, // the TokenType::IDENT
+    pub token: Token,
     pub value: String,
 }
 
 impl Node for Identifier {
     fn token_literal(&self) -> String {
-        format!("{:?}", self.token_type)
+        self.token.literal.clone()
     }
 }
 
-/// An `Expression` usually produces a value,
-/// but the identifier in a `let` statement doesn't
-/// produce a value, right? So why is it an `Expression`?
-/// It's to keep things simple. Identifiers in other parts
-/// of the Monkey program do produce values,
-/// e.g: `let x = valueProducingIdentifier;`; and to
-/// keep the num of node types small, we'll use `Identifier`
-/// here to represent the name(for e.g. `x`) in a variable binding and
-/// later reuse it, to represent an identifier as part of or
-/// as a complete expression.
 impl Expression for Identifier {
     fn expression_node(&self) -> String {
         todo!()
+    }
+}
+
+pub struct NoneExpression;
+
+impl Node for NoneExpression {
+    fn token_literal(&self) -> String {
+        "".to_string()
+    }
+}
+
+impl Expression for NoneExpression {
+    fn expression_node(&self) -> String {
+        "".to_string()
     }
 }

@@ -87,7 +87,7 @@ impl fmt::Display for TokenType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
     pub literal: String,
