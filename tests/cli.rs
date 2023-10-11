@@ -173,6 +173,10 @@ fn test_let_statements() {
         .parse_program()
         .expect("Something went wrong with the parser");
 
+    // This might be unnecessary but doing it anyway because
+    // its in the book
+    check_parser_errors(&parser);
+
     assert!(
         !program.statements.is_empty(),
         "Program should not be empty"
@@ -194,6 +198,56 @@ fn test_let_statements() {
             "Failed `test_let_statement`"
         );
     }
+}
+
+#[test]
+fn test_return_statement() {
+    let input = String::from(
+        "return 5;
+return 10;
+return 993322;",
+    );
+
+    let mut lexer = Lexer::new(input);
+    let mut parser = Parser::new(&mut lexer);
+
+    match parser.parse_program() {
+        Ok(program) => {
+            check_parser_errors(&parser);
+            assert!(
+                !program.statements.is_empty(),
+                "Program should not be empty"
+            );
+
+            assert_eq!(
+                program.statements.len(),
+                3,
+                "program.Statements does not contain 3 statements. got={}",
+                program.statements.len()
+            );
+
+            for stmt in &program.statements {
+                match stmt.as_any().downcast_ref::<ReturnStatement>() {
+                    Some(return_stmt) => {
+                        assert_eq!(return_stmt.token_literal(), "return");
+                    }
+                    None => panic!("stmt not ReturnStament. got={:?}", stmt.as_any().type_id()),
+                }
+            }
+        }
+        Err(e) => panic!("Failed to parse program: {:?}", e),
+    }
+}
+
+// TODO: delete this at a later date if deemed
+// unnecessary as we already have a `Result` unwrap
+// check in our test method
+fn check_parser_errors(p: &Parser) {
+    let errors = p.errors();
+    if errors.is_empty() {
+        return;
+    }
+    panic!("Parser has {} errors: {:?}", errors.len(), errors);
 }
 
 fn test_let_statement(stmt: &dyn Statement, expected: &str) -> bool {

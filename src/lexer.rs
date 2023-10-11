@@ -171,8 +171,8 @@ impl Lexer {
     }
 
     // Helper (associated) to determine if its a letter
+    #[allow(clippy::manual_is_ascii_check)]
     fn is_letter(ch: char) -> bool {
-        // ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || (ch == '_')
         ('a'..='z').contains(&ch) || ('A'..='Z').contains(&ch) || (ch == '_')
     }
 

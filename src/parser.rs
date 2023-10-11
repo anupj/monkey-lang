@@ -19,6 +19,7 @@ pub struct Parser<'a> {
     lexer: &'a mut Lexer,
     current_token: Token,
     peek_token: Token,
+    errors: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -34,11 +35,13 @@ impl<'a> Parser<'a> {
         // are both set
         let current_token = lexer.next_token();
         let peek_token = lexer.next_token();
+        let errors = Vec::new();
 
         Self {
             lexer,
             current_token,
             peek_token,
+            errors,
         }
     }
 
@@ -48,7 +51,7 @@ impl<'a> Parser<'a> {
             statements: Vec::new(),
         };
 
-        while self.current_token.token_type != TokenType::EOF {
+        while !self.cur_token_is(&TokenType::EOF) {
             match self.parse_statement() {
                 Some(Ok(statement)) => program.statements.push(statement),
                 Some(Err(err)) => return Err(err),
@@ -70,6 +73,7 @@ impl<'a> Parser<'a> {
     fn parse_statement(&mut self) -> Option<Result<Box<dyn Statement>, ParsingError>> {
         match self.current_token.token_type {
             TokenType::LET => Some(self.parse_let_statement()),
+            TokenType::RETURN => Some(self.parse_return_statement()),
             // Add more here as the language evolves
             _ => None,
         }
@@ -99,7 +103,7 @@ impl<'a> Parser<'a> {
         );
 
         // Lets peek ahead and see its an IDENT
-        if !self.expect_peek(TokenType::IDENT) {
+        if !self.expect_peek(&TokenType::IDENT) {
             return Err(ParsingError::UnexpectedToken {
                 expected: "IDENT".to_string(),
                 found: format!("{:?}", self.peek_token.token_type),
@@ -113,7 +117,7 @@ impl<'a> Parser<'a> {
         };
 
         // after the identifier comes "=" or `ASSIGN`
-        if !self.expect_peek(TokenType::ASSIGN) {
+        if !self.expect_peek(&TokenType::ASSIGN) {
             return Err(ParsingError::UnexpectedToken {
                 expected: "ASSIGN".to_string(),
                 found: format!("{:?}", self.peek_token.token_type),
@@ -121,30 +125,50 @@ impl<'a> Parser<'a> {
         }
 
         // TODO: Skipping the expressions until we encounter a semicolon
-        while !self.cur_token_is(TokenType::SEMICOLON) {
+        while !self.cur_token_is(&TokenType::SEMICOLON) {
             self.next_token();
         }
 
         Ok(Box::new(stmt))
     }
 
-    fn cur_token_is(&self, t: TokenType) -> bool {
-        self.current_token.token_type == t
+    /// Parses `return` statement
+    fn parse_return_statement(&mut self) -> Result<Box<dyn Statement>, ParsingError> {
+        // Initialise the `ReturnStatement` to be sent
+        // in the response
+        let mut stmt = ReturnStatement {
+            // sets it to `RETURN` token
+            token: self.current_token.clone(),
+            return_value: Box::new(NoneExpression), // placeholder
+        };
+        self.next_token();
+
+        // TODO: We're skipping the expressions until we
+        // encounter a seimcolon
+        while !self.cur_token_is(&TokenType::SEMICOLON) {
+            self.next_token();
+        }
+        Ok(Box::new(stmt))
     }
 
-    fn peek_token_is(&self, t: TokenType) -> bool {
-        self.peek_token.token_type == t
+    fn cur_token_is(&self, t: &TokenType) -> bool {
+        self.current_token.token_type == *t
+    }
+
+    fn peek_token_is(&self, t: &TokenType) -> bool {
+        self.peek_token.token_type == *t
     }
 
     /// Peek ahead and see if the `TokenType` to be of type `t`
     /// If it is of type `t` then advance to that `t` token
     /// and return `true`;
     /// else just return `false`
-    fn expect_peek(&mut self, t: TokenType) -> bool {
+    fn expect_peek(&mut self, t: &TokenType) -> bool {
         if self.peek_token_is(t) {
             self.next_token();
             true
         } else {
+            self.peek_error(t);
             false
         }
     }
@@ -152,5 +176,17 @@ impl<'a> Parser<'a> {
     fn next_token(&mut self) {
         self.current_token = self.peek_token.clone();
         self.peek_token = self.lexer.next_token();
+    }
+
+    pub fn errors(&self) -> &Vec<String> {
+        &self.errors
+    }
+
+    pub fn peek_error(&mut self, t: &TokenType) {
+        let msg = format!(
+            "expected next token to be {:?}, got {:?} instead",
+            t, self.peek_token.token_type
+        );
+        self.errors.push(msg);
     }
 }
