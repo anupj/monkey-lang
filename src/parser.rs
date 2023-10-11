@@ -75,32 +75,44 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Parses `let` statement
     pub fn parse_let_statement(&mut self) -> Result<Box<dyn Statement>, ParsingError> {
+        // Initialise the `LetStatement` to be sent
+        // in the response
         let mut stmt = LetStatement {
+            // sets it to `LET` token
             token: self.current_token.clone(),
-            // Initial values; these should be properly initialized
+            // Initial values for Identifier; these should be properly initialized later
             name: Identifier {
                 token: Token {
                     token_type: TokenType::ILLEGAL,
                     literal: "".to_string(),
-                }, // placeholder
+                },
                 value: "".to_string(), // placeholder
             },
             value: Box::new(NoneExpression), // placeholder
         };
 
+        println!(
+            "current token is {}, and peek token is {}",
+            self.current_token.literal, self.peek_token.literal
+        );
+
+        // Lets peek ahead and see its an IDENT
         if !self.expect_peek(TokenType::IDENT) {
             return Err(ParsingError::UnexpectedToken {
                 expected: "IDENT".to_string(),
                 found: format!("{:?}", self.peek_token.token_type),
             });
         }
+        // In `expect_peek()`, you advance to the identifier (e.g. `x`)
 
         stmt.name = Identifier {
             token: self.current_token.clone(),
             value: self.current_token.literal.clone(),
         };
 
+        // after the identifier comes "=" or `ASSIGN`
         if !self.expect_peek(TokenType::ASSIGN) {
             return Err(ParsingError::UnexpectedToken {
                 expected: "ASSIGN".to_string(),
@@ -124,9 +136,9 @@ impl<'a> Parser<'a> {
         self.peek_token.token_type == t
     }
 
-    /// Expect the `TokenType` to be of type `t`
-    /// If it is of type `t` then advance to the
-    /// next token and return `true`
+    /// Peek ahead and see if the `TokenType` to be of type `t`
+    /// If it is of type `t` then advance to that `t` token
+    /// and return `true`;
     /// else just return `false`
     fn expect_peek(&mut self, t: TokenType) -> bool {
         if self.peek_token_is(t) {

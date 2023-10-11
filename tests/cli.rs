@@ -185,18 +185,18 @@ fn test_let_statements() {
         "The program should have 3 `let` statements."
     );
 
-    let tests = vec!["x", "y", "foobar"];
+    let tests = ["x", "y", "foobar"];
 
     for (i, test_case) in tests.iter().enumerate() {
         let stmt = &program.statements[i];
         assert!(
-            test_let_statement(stmt, test_case),
+            test_let_statement(stmt.as_ref(), test_case),
             "Failed `test_let_statement`"
         );
     }
 }
 
-fn test_let_statement(stmt: &Box<dyn Statement>, expected: &str) -> bool {
+fn test_let_statement(stmt: &dyn Statement, expected: &str) -> bool {
     // I am not using `assert_eq` here because I want to return
     // false
     if stmt.token_literal() != "let" {

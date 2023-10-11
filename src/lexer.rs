@@ -157,8 +157,7 @@ impl Lexer {
             self.read_char();
         }
         let end_position = self.position;
-        let result = self.input[start_position as usize..end_position as usize].to_string();
-        result
+        self.input[start_position as usize..end_position as usize].to_string()
     }
 
     // Read and return the identifier string
@@ -168,13 +167,13 @@ impl Lexer {
             self.read_char();
         }
         let end_position = self.position;
-        let result = self.input[start_position as usize..end_position as usize].to_string();
-        result
+        self.input[start_position as usize..end_position as usize].to_string()
     }
 
     // Helper (associated) to determine if its a letter
     fn is_letter(ch: char) -> bool {
-        ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || (ch == '_')
+        // ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || (ch == '_')
+        ('a'..='z').contains(&ch) || ('A'..='Z').contains(&ch) || (ch == '_')
     }
 
     // Helper (associated) function to determine whether an
