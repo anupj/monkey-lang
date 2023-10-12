@@ -231,7 +231,10 @@ return 993322;",
                     Some(return_stmt) => {
                         assert_eq!(return_stmt.token_literal(), "return");
                     }
-                    None => panic!("stmt not ReturnStament. got={:?}", stmt.as_any().type_id()),
+                    None => panic!(
+                        "stmt not ReturnStament. got={:?}",
+                        stmt.as_any().type_id()
+                    ),
                 }
             }
         }
@@ -264,6 +267,97 @@ fn test_to_string() {
         })],
     };
     assert_eq!(program.to_string(), "let myVar = anotherVar;");
+}
+
+#[test]
+fn test_identifier_expression() {
+    let input = "foobar";
+
+    let mut lexer = Lexer::new(input.to_string());
+    let mut parser = Parser::new(&mut lexer);
+    let program = parser
+        .parse_program()
+        .expect("There was a problem parsing the program");
+
+    check_parser_errors(&parser);
+
+    assert_eq!(
+        program.statements.len(),
+        1,
+        "program does not contain 1 statement. got={}",
+        program.statements.len()
+    );
+
+    let stmt = &program.statements[0];
+    if let Some(exp_stmt) = stmt.as_any().downcast_ref::<ExpressionStatement>()
+    {
+        if let Some(ident) =
+            exp_stmt.expression.as_any().downcast_ref::<Identifier>()
+        {
+            assert_eq!(
+                ident.value, "foobar",
+                "ident.value not {}. got={}",
+                "foobar", ident.value
+            );
+            assert_eq!(
+                ident.token_literal(),
+                "foobar",
+                "ident.token_literal() not {}. got={}",
+                "foobar",
+                ident.token_literal()
+            );
+        } else {
+            panic!("exp_stmt.expression is not Identifier.");
+        }
+    } else {
+        panic!("program.statements[0] is not ExpressionStatement.");
+    }
+}
+
+#[test]
+fn test_integer_literal_expression() {
+    let input = "5;";
+
+    let mut lexer = Lexer::new(input.to_string());
+    let mut parser = Parser::new(&mut lexer);
+    let program = parser.parse_program().expect("Failed to parse the program");
+
+    assert_eq!(
+        program.statements.len(),
+        1,
+        "program does not have enough statements. got={}",
+        program.statements.len()
+    );
+
+    let stmt = &program.statements[0];
+    if let Some(exp_stmt) = stmt.as_any().downcast_ref::<ExpressionStatement>()
+    {
+        if let Some(int_literal) = exp_stmt
+            .expression
+            .as_any()
+            .downcast_ref::<IntegerLiteral>()
+        {
+            assert_eq!(
+                int_literal.value, 5,
+                "literal.value not {}. got={}",
+                5, int_literal.value
+            );
+            assert_eq!(
+                int_literal.token_literal(),
+                "5",
+                "int_literal.token_literal() not {}. got={}",
+                "5",
+                int_literal.token_literal()
+            );
+        } else {
+            panic!("exp not IntegerLiteral. got={}", exp_stmt.expression);
+        }
+    } else {
+        panic!(
+            "program.Statements[0] is not ExpressionStatement. got={}",
+            stmt
+        );
+    }
 }
 
 // ---- Helper methods -----

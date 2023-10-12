@@ -7,10 +7,11 @@ use crate::token::{Token, TokenType};
 
 pub struct Lexer {
     input: String,
-    position: i32,      // current position in input (points to current char)
-    read_position: i32, // current reading position in input (after current char)
-    ch: char,           // current char under examination
-                        /* Lexer only supports ASCII character */
+    position: i32, // current position in input (points to current char)
+    read_position: i32, /* current reading position in input (after current
+                    * char) */
+    ch: char, /* current char under examination, Lexer only supports ASCII
+               * character */
 }
 
 impl Lexer {
@@ -129,7 +130,8 @@ impl Lexer {
             // it sets `ch` to the next character
             // remember that `read_position` always points to the next
             // character
-            self.ch = self.input.chars().nth(self.read_position as usize).unwrap();
+            self.ch =
+                self.input.chars().nth(self.read_position as usize).unwrap();
         }
         self.position = self.read_position;
         self.read_position += 1;
@@ -145,7 +147,8 @@ impl Lexer {
             // Return '\0' to signify EOF or no next character
             '\0'
         } else {
-            // Otherwise, return the next character without changing the lexer state
+            // Otherwise, return the next character without changing the lexer
+            // state
             self.input.chars().nth(self.read_position as usize).unwrap()
         }
     }

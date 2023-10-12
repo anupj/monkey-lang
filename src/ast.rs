@@ -21,6 +21,7 @@ pub trait Statement: Node {
 /// `Expression` is a sub-type of `Node`
 pub trait Expression: Node {
     fn expression_node(&self) -> String;
+    fn as_any(&self) -> &dyn Any;
 }
 
 /// Represents the `let` statement
@@ -115,6 +116,10 @@ impl Expression for Identifier {
     fn expression_node(&self) -> String {
         todo!()
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 /// An `ExpressionStatement` is not really a
@@ -127,8 +132,8 @@ impl Expression for Identifier {
 /// x + 10;
 /// ```
 pub struct ExpressionStatement {
-    token: Token,
-    expression: Box<dyn Expression>,
+    pub token: Token,
+    pub expression: Box<dyn Expression>,
 }
 
 impl fmt::Display for ExpressionStatement {
@@ -148,6 +153,35 @@ impl Statement for ExpressionStatement {
         // Expand on this later depending on the
         // needs of the Monkey lang interpreter
         self.token_literal()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+/// An Integer Literal
+/// e.g. `5;`
+pub struct IntegerLiteral {
+    pub token: Token,
+    pub value: i64,
+}
+
+impl fmt::Display for IntegerLiteral {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
+impl Node for IntegerLiteral {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
+
+impl Expression for IntegerLiteral {
+    fn expression_node(&self) -> String {
+        self.token.literal.clone()
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -175,6 +209,10 @@ impl Expression for NoneExpression {
     fn expression_node(&self) -> String {
         "".to_string()
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 pub struct Program {
@@ -183,7 +221,8 @@ pub struct Program {
 
 impl fmt::Display for Program {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let output: String = self.statements.iter().map(|s| s.to_string()).collect();
+        let output: String =
+            self.statements.iter().map(|s| s.to_string()).collect();
         write!(f, "{}", output)
     }
 }
