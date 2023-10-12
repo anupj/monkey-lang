@@ -1,9 +1,10 @@
 use std::any::Any;
+use std::fmt;
 
 use crate::token::Token;
 
 /// An AST is a tree of Nodes
-pub trait Node {
+pub trait Node: fmt::Display {
     fn token_literal(&self) -> String;
 }
 
@@ -15,18 +16,11 @@ pub trait Statement: Node {
     fn as_any(&self) -> &dyn Any;
 }
 
-pub struct Program {
-    pub statements: Vec<Box<dyn Statement>>,
-}
-
-impl Node for Program {
-    fn token_literal(&self) -> String {
-        if let Some(first_statement) = self.statements.first() {
-            first_statement.token_literal()
-        } else {
-            "".to_string()
-        }
-    }
+/// A Expression is a type of Node that
+/// returns a value
+/// `Expression` is a sub-type of `Node`
+pub trait Expression: Node {
+    fn expression_node(&self) -> String;
 }
 
 /// Represents the `let` statement
@@ -35,6 +29,18 @@ pub struct LetStatement {
     pub token: Token,
     pub name: Identifier,
     pub value: Box<dyn Expression>,
+}
+
+impl fmt::Display for LetStatement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} {} = {};",
+            self.token.literal,
+            self.name.value,
+            self.value // removing to_string() as per clippy
+        )
+    }
 }
 
 impl Node for LetStatement {
@@ -55,9 +61,21 @@ impl Statement for LetStatement {
 
 /// Represents a `return` statement
 /// e.g. `return 5;`, `return 10`, `return add(15);`
+/// e.g. `return x;`, `return add(4, y);`
 pub struct ReturnStatement {
     pub token: Token,
     pub return_value: Box<dyn Expression>,
+}
+
+impl fmt::Display for ReturnStatement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} {};",
+            self.token.literal,
+            self.return_value // removing to_string() as per clippy
+        )
+    }
 }
 
 impl Node for ReturnStatement {
@@ -81,17 +99,16 @@ pub struct Identifier {
     pub value: String,
 }
 
+impl fmt::Display for Identifier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
 impl Node for Identifier {
     fn token_literal(&self) -> String {
         self.token.literal.clone()
     }
-}
-
-/// A Expression is a type of Node that
-/// returns a value
-/// `Expression` is a sub-type of `Node`
-pub trait Expression: Node {
-    fn expression_node(&self) -> String;
 }
 
 impl Expression for Identifier {
@@ -100,7 +117,53 @@ impl Expression for Identifier {
     }
 }
 
+/// An `ExpressionStatement` is not really a
+/// distinct statement; it's a statement that
+/// consists solely of one expression.
+/// It's a wrapper. We need it because it's
+/// totally legal in Monkey to write the following code:
+/// ```Monkey
+/// let x = 5;
+/// x + 10;
+/// ```
+pub struct ExpressionStatement {
+    token: Token,
+    expression: Box<dyn Expression>,
+}
+
+impl fmt::Display for ExpressionStatement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.expression) // removing to_string() as per clippy
+    }
+}
+
+impl Node for ExpressionStatement {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
+
+impl Statement for ExpressionStatement {
+    fn statement_node(&self) -> String {
+        // Expand on this later depending on the
+        // needs of the Monkey lang interpreter
+        self.token_literal()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+/// TODO: Possibly remove `NoneExpression` once
+/// we have Expression parsing working
 pub struct NoneExpression;
+
+impl fmt::Display for NoneExpression {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "")
+    }
+}
 
 impl Node for NoneExpression {
     fn token_literal(&self) -> String {
@@ -111,5 +174,26 @@ impl Node for NoneExpression {
 impl Expression for NoneExpression {
     fn expression_node(&self) -> String {
         "".to_string()
+    }
+}
+
+pub struct Program {
+    pub statements: Vec<Box<dyn Statement>>,
+}
+
+impl fmt::Display for Program {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let output: String = self.statements.iter().map(|s| s.to_string()).collect();
+        write!(f, "{}", output)
+    }
+}
+
+impl Node for Program {
+    fn token_literal(&self) -> String {
+        if let Some(first_statement) = self.statements.first() {
+            first_statement.token_literal()
+        } else {
+            "".to_string()
+        }
     }
 }

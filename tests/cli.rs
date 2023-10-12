@@ -239,6 +239,35 @@ return 993322;",
     }
 }
 
+#[test]
+fn test_to_string() {
+    let program = Program {
+        statements: vec![Box::new(LetStatement {
+            token: Token {
+                token_type: TokenType::LET,
+                literal: "let".to_string(),
+            },
+            name: Identifier {
+                token: Token {
+                    token_type: TokenType::IDENT,
+                    literal: "myVar".to_string(),
+                },
+                value: "myVar".to_string(),
+            },
+            value: Box::new(Identifier {
+                token: Token {
+                    token_type: TokenType::IDENT,
+                    literal: "anotherVar".to_string(),
+                },
+                value: "anotherVar".to_string(),
+            }),
+        })],
+    };
+    assert_eq!(program.to_string(), "let myVar = anotherVar;");
+}
+
+// ---- Helper methods -----
+
 // TODO: delete this at a later date if deemed
 // unnecessary as we already have a `Result` unwrap
 // check in our test method
