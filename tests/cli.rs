@@ -360,9 +360,57 @@ fn test_integer_literal_expression() {
     }
 }
 
+#[test]
+fn test_parsing_prefix_expressions() {
+    let prefix_tests = vec![("!5;", "!", 5), ("-15;", "-", 15)];
+    for (input, operator, integer_value) in prefix_tests {
+        let mut lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(&mut lexer);
+        let program =
+            parser.parse_program().expect("Failed to parse the program");
+
+        assert_eq!(
+            program.statements.len(),
+            1,
+            "program.Statements does not contain 1 statement. got={}",
+            program.statements.len()
+        );
+
+        let stmt = &program.statements[0];
+
+        if let Some(exp_stmt) =
+            stmt.as_any().downcast_ref::<ExpressionStatement>()
+        {
+            if let Some(prefix_exp) = exp_stmt
+                .expression
+                .as_any()
+                .downcast_ref::<PrefixExpression>()
+            {
+                assert_eq!(
+                    prefix_exp.operator, operator,
+                    "exp.Operator is not '{}'. got={}",
+                    operator, prefix_exp.operator
+                );
+
+                test_integer_literal(prefix_exp.right.as_ref(), integer_value);
+            } else {
+                panic!(
+                    "stmt.Expression is not PrefixExpression. got={}",
+                    exp_stmt.expression
+                );
+            }
+        } else {
+            panic!(
+                "program.Statements[0] is not ExpressionStatement. got={}",
+                stmt
+            );
+        }
+    }
+}
+
 // ---- Helper methods -----
 
-// TODO: delete this at a later date if deemed
+// TODO: delete this method at a later date if deemed
 // unnecessary as we already have a `Result` unwrap
 // check in our test method
 fn check_parser_errors(p: &Parser) {
@@ -400,4 +448,27 @@ fn test_let_statement(stmt: &dyn Statement, expected: &str) -> bool {
     }
 
     true
+}
+
+fn test_integer_literal(exp: &dyn Expression, value: i64) -> bool {
+    if let Some(int_literal) = exp.as_any().downcast_ref::<IntegerLiteral>() {
+        assert_eq!(
+            int_literal.value, value,
+            "int_literal.value not {}. got={}",
+            value, int_literal.value
+        );
+
+        let expected_token_literal = value.to_string();
+        assert_eq!(
+            int_literal.token_literal(),
+            expected_token_literal,
+            "int_literal.token_literal not {}. got={}",
+            expected_token_literal,
+            int_literal.token_literal()
+        );
+
+        true
+    } else {
+        panic!("Expression not IntegerLiteral. got={}", exp);
+    }
 }

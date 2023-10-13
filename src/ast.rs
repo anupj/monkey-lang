@@ -189,6 +189,36 @@ impl Expression for IntegerLiteral {
     }
 }
 
+/// There are two prefix operators in the Monkey
+/// programming language: ! and -. Their usage is pretty
+/// much what you’d expect from other languages:
+pub struct PrefixExpression {
+    pub token: Token, // The prefix token, e.g. !
+    pub operator: String,
+    pub right: Box<dyn Expression>,
+}
+
+impl fmt::Display for PrefixExpression {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}{})", self.operator, self.right)
+    }
+}
+
+impl Node for PrefixExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
+
+impl Expression for PrefixExpression {
+    fn expression_node(&self) -> String {
+        self.token.literal.clone()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
 /// TODO: Possibly remove `NoneExpression` once
 /// we have Expression parsing working
 pub struct NoneExpression;

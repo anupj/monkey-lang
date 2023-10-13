@@ -78,6 +78,7 @@ impl<'a> Parser<'a> {
         let mut prefix_parse_fns = HashMap::new();
         let mut infix_parse_fns = HashMap::new();
 
+        // Populate the `prefix_parse_fns` map
         prefix_parse_fns.insert(
             TokenType::IDENT,
             Parser::parse_identifier as PrefixParseFn,
@@ -85,6 +86,14 @@ impl<'a> Parser<'a> {
         prefix_parse_fns.insert(
             TokenType::INT,
             Parser::parse_integer_literal as PrefixParseFn,
+        );
+        prefix_parse_fns.insert(
+            TokenType::BANG,
+            Parser::parse_prefix_expression as PrefixParseFn,
+        );
+        prefix_parse_fns.insert(
+            TokenType::MINUS,
+            Parser::parse_prefix_expression as PrefixParseFn,
         );
 
         Self {
@@ -133,46 +142,60 @@ impl<'a> Parser<'a> {
             // Since the only two real statement types in Monkey are
             // let and return statements, we try to parse expression
             // statements if we don't encounter one of the other two.
-            _ => Some(Ok(self.parse_expression_statement())),
+            _ => Some(self.parse_expression_statement()),
         }
     }
 
-    fn parse_expression_statement(&mut self) -> Box<dyn Statement> {
-        let stmt = ExpressionStatement {
-            token: self.current_token.clone(),
-            expression: self.parse_expression(Precedence::Lowest),
-        };
+    fn parse_expression_statement(
+        &mut self,
+    ) -> Result<Box<dyn Statement>, ParsingError> {
+        match self.parse_expression(Precedence::Lowest) {
+            Ok(expr) => {
+                let stmt = ExpressionStatement {
+                    token: self.current_token.clone(),
+                    expression: expr,
+                };
 
-        // Check for an optional semicolon,
-        // If the `peek`d token is a `;`, then
-        // advance so that its the `current_token`
-        // This is because we want expression statements to
-        // have optional semicolons
-        if self.peek_token_is(&TokenType::SEMICOLON) {
-            self.next_token();
+                // Check for an optional semicolon,
+                // If the `peek`d token is a `;`, then
+                // advance so that it's the `current_token`
+                // This is because we want expression statements to
+                // have optional semicolons
+                if self.peek_token_is(&TokenType::SEMICOLON) {
+                    self.next_token();
+                }
+
+                Ok(Box::new(stmt))
+            }
+            Err(err) => Err(err),
         }
+    }
 
-        Box::new(stmt)
+    fn no_prefix_parse_fn_error(&mut self, t: &TokenType) {
+        let msg = format!("no prefix parse function for {:?} found", t);
+        self.errors.push(msg);
     }
 
     fn parse_expression(
         &mut self,
         _precedence: Precedence,
-    ) -> Box<dyn Expression> {
+    ) -> Result<Box<dyn Expression>, ParsingError> {
+        let token_type = self.current_token.token_type.clone();
         // Look up if there's a prefix parsing function associated with the
         // current `Token`
-        if let Some(prefix) =
-            self.prefix_parse_fns.get(&self.current_token.token_type)
-        {
-            if let Ok(expr) = prefix(self) {
-                return expr;
+        if let Some(prefix) = self.prefix_parse_fns.get(&token_type) {
+            match prefix(self) {
+                Ok(expr) => return Ok(expr),
+                Err(err) => return Err(err),
             }
         }
 
-        // If no matching function, return a placeholder or an error
-        Box::new(NoneExpression)
-    }
+        // Call the new error function if no matching prefix function
+        self.no_prefix_parse_fn_error(&token_type);
 
+        // If no matching function, return a placeholder or an error
+        Ok(Box::new(NoneExpression))
+    }
     /// Important function to parse the identifier
     /// Note that this is an associated `fn`
     fn parse_identifier(
@@ -198,6 +221,36 @@ impl<'a> Parser<'a> {
                 parser.errors.push(msg);
                 Err(ParsingError::Unknown)
             }
+        }
+    }
+
+    /// Parses prefix expressions
+    /// There are two prefix operators in the Monkey programming language: ! and
+    /// -. Their usage is pretty much what you’d expect from other languages:
+    /// ```Monkey
+    /// -5;
+    /// !foobar;
+    /// 5 + -10;
+    /// ```
+    /// The structure of their usage is the following:
+    /// <prefix operator><expression>;”
+    fn parse_prefix_expression(
+        parser: &mut Parser,
+    ) -> Result<Box<dyn Expression>, ParsingError> {
+        let expression = PrefixExpression {
+            token: parser.current_token.clone(),
+            operator: parser.current_token.literal.clone(),
+            right: Box::new(NoneExpression), // Placeholder, will be replaced
+        };
+
+        parser.next_token();
+        match parser.parse_expression(Precedence::Prefix) {
+            Ok(right_exp) => Ok(Box::new(PrefixExpression {
+                token: expression.token,
+                operator: expression.operator,
+                right: right_exp,
+            })),
+            Err(e) => Err(e),
         }
     }
 
@@ -249,7 +302,7 @@ impl<'a> Parser<'a> {
             });
         }
 
-        // TODO: Skipping the expressions until we encounter a semicolon
+        // TODO: Skipping the expressions until we encounter a semicolon for now
         while !self.cur_token_is(&TokenType::SEMICOLON) {
             self.next_token();
         }
