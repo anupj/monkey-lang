@@ -408,7 +408,110 @@ fn test_parsing_prefix_expressions() {
     }
 }
 
-// ---- Helper methods -----
+#[test]
+fn test_parsing_infix_expressions() {
+    let infix_tests = vec![
+        ("5 + 5;", 5, "+", 5),
+        ("5 - 5;", 5, "-", 5),
+        ("5 * 5;", 5, "*", 5),
+        ("5 / 5;", 5, "/", 5),
+        ("5 > 5;", 5, ">", 5),
+        ("5 < 5;", 5, "<", 5),
+        ("5 == 5;", 5, "==", 5),
+        ("5 != 5;", 5, "!=", 5),
+    ];
+
+    for (input, left_value, operator, right_value) in infix_tests {
+        let mut l = Lexer::new(input.to_string());
+        let mut p = Parser::new(&mut l);
+        let program = p.parse_program().expect("Failed to parse program");
+
+        assert_eq!(
+            program.statements.len(),
+            1,
+            "program.statements does not contain 1 statement. got={}",
+            program.statements.len()
+        );
+
+        match program.statements[0]
+            .as_any()
+            .downcast_ref::<ExpressionStatement>()
+        {
+            Some(expression_statement) => {
+                match expression_statement
+                    .expression
+                    .as_any()
+                    .downcast_ref::<InfixExpression>()
+                {
+                    Some(infix_expression) => {
+                        test_integer_literal(
+                            infix_expression
+                                .left
+                                .as_any()
+                                .downcast_ref::<IntegerLiteral>()
+                                .unwrap(),
+                            left_value,
+                        );
+                        assert_eq!(
+                            &infix_expression.operator, operator,
+                            "exp.Operator is not {}. got={}",
+                            operator, infix_expression.operator
+                        );
+                        test_integer_literal(
+                            infix_expression
+                                .right
+                                .as_any()
+                                .downcast_ref::<IntegerLiteral>()
+                                .unwrap(),
+                            right_value,
+                        );
+                    }
+                    None => panic!(
+                        "exp is not InfixExpression. got={}",
+                        expression_statement.expression
+                    ),
+                }
+            }
+            None => panic!(
+                "program.Statements[0] is not ExpressionStatement. got={}",
+                program.statements[0]
+            ),
+        }
+    }
+}
+
+#[test]
+fn test_operator_precedence_parsing() {
+    let tests = vec![
+        ("-a * b", "((-a) * b)"),
+        ("!-a", "(!(-a))"),
+        ("a + b + c", "((a + b) + c)"),
+        ("a + b - c", "((a + b) - c)"),
+        ("a * b * c", "((a * b) * c)"),
+        ("a * b / c", "((a * b) / c)"),
+        ("a + b / c", "(a + (b / c))"),
+        ("a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)"),
+        ("3 + 4; -5 * 5", "(3 + 4)((-5) * 5)"),
+        ("5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))"),
+        ("5 < 4 != 3 > 4", "((5 < 4) != (3 > 4))"),
+        (
+            "3 + 4 * 5 == 3 * 1 + 4 * 5",
+            "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+        ),
+    ];
+
+    for (input, expected) in tests.iter() {
+        let mut l = Lexer::new(input.to_string());
+        let mut p = Parser::new(&mut l);
+        let program = p.parse_program().expect("Failed to parse program");
+        // You can add a function here to check for parsing errors if needed.
+
+        let actual = program.to_string();
+        assert_eq!(actual, *expected, "expected={}, got={}", expected, actual);
+    }
+}
+
+// ---- Helper methods ----- //
 
 // TODO: delete this method at a later date if deemed
 // unnecessary as we already have a `Result` unwrap
@@ -450,7 +553,7 @@ fn test_let_statement(stmt: &dyn Statement, expected: &str) -> bool {
     true
 }
 
-fn test_integer_literal(exp: &dyn Expression, value: i64) -> bool {
+fn test_integer_literal(exp: &dyn Expression, value: i64) {
     if let Some(int_literal) = exp.as_any().downcast_ref::<IntegerLiteral>() {
         assert_eq!(
             int_literal.value, value,
@@ -466,8 +569,6 @@ fn test_integer_literal(exp: &dyn Expression, value: i64) -> bool {
             expected_token_literal,
             int_literal.token_literal()
         );
-
-        true
     } else {
         panic!("Expression not IntegerLiteral. got={}", exp);
     }

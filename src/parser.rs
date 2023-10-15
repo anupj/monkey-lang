@@ -96,6 +96,40 @@ impl<'a> Parser<'a> {
             Parser::parse_prefix_expression as PrefixParseFn,
         );
 
+        // Populate the `infix_parse_fns` map
+        infix_parse_fns.insert(
+            TokenType::PLUS,
+            Parser::parse_infix_expression as InfixParseFn,
+        );
+        infix_parse_fns.insert(
+            TokenType::MINUS,
+            Parser::parse_infix_expression as InfixParseFn,
+        );
+        infix_parse_fns.insert(
+            TokenType::SLASH,
+            Parser::parse_infix_expression as InfixParseFn,
+        );
+        infix_parse_fns.insert(
+            TokenType::ASTERISK,
+            Parser::parse_infix_expression as InfixParseFn,
+        );
+        infix_parse_fns.insert(
+            TokenType::EQ,
+            Parser::parse_infix_expression as InfixParseFn,
+        );
+        infix_parse_fns.insert(
+            TokenType::NOT_EQ,
+            Parser::parse_infix_expression as InfixParseFn,
+        );
+        infix_parse_fns.insert(
+            TokenType::LT,
+            Parser::parse_infix_expression as InfixParseFn,
+        );
+        infix_parse_fns.insert(
+            TokenType::GT,
+            Parser::parse_infix_expression as InfixParseFn,
+        );
+
         Self {
             lexer,
             current_token,
@@ -140,7 +174,7 @@ impl<'a> Parser<'a> {
             TokenType::LET => Some(self.parse_let_statement()),
             TokenType::RETURN => Some(self.parse_return_statement()),
             // Since the only two real statement types in Monkey are
-            // let and return statements, we try to parse expression
+            // `let` and `return` statements, we try to parse expression
             // statements if we don't encounter one of the other two.
             _ => Some(self.parse_expression_statement()),
         }
@@ -176,26 +210,60 @@ impl<'a> Parser<'a> {
         self.errors.push(msg);
     }
 
+    /// This is the main parsing function where all the magic
+    /// happens. This function is responsible for parsing an
+    /// expression based on a set of tokens and operator precedence.
+    /// Let's break it down using the example input "-a * b".
     fn parse_expression(
         &mut self,
-        _precedence: Precedence,
+        precedence: Precedence,
     ) -> Result<Box<dyn Expression>, ParsingError> {
-        let token_type = self.current_token.token_type.clone();
-        // Look up if there's a prefix parsing function associated with the
-        // current `Token`
-        if let Some(prefix) = self.prefix_parse_fns.get(&token_type) {
-            match prefix(self) {
-                Ok(expr) => return Ok(expr),
-                Err(err) => return Err(err),
-            }
+        // Initialisation: the function starts by looking up
+        // the prefix parsing function for the current token
+        // type (`-` in this case)
+        let prefix = self
+            .prefix_parse_fns
+            .get(&self.current_token.token_type)
+            .ok_or(ParsingError::Unknown)?;
+
+        // It then calls this prefix parsing function
+        // to parse the `-a` part of the expression
+        let mut left_exp = prefix(self)?;
+        // the result now will be a representation of the
+        // `-a` expression
+
+        // Now it enters a loop to handle any infix expressions
+        // The The loop continues until it encounters a semicolon
+        // or when the next operator in line (`*` in this case) has
+        // a precedence that's not greater than the current level
+        // of precedence passed to parse_expression.
+        while self.peek_token.token_type != TokenType::SEMICOLON
+            && precedence < self.peek_precedence()
+        {
+            {
+                // Find the infix parsing function for the current
+                // peeked token (`*` in this case)
+                let infix =
+                    self.infix_parse_fns.get(&self.peek_token.token_type);
+
+                if infix.is_none() {
+                    return Ok(left_exp);
+                }
+            } // Note: `infix` is dropped here
+
+            self.next_token(); // Move to the next token (the infix operator)
+
+            let infix_fn = self
+                .infix_parse_fns
+                .get(&self.current_token.token_type)
+                .ok_or(ParsingError::Unknown)?;
+
+            left_exp = infix_fn(self, left_exp)?;
         }
 
-        // Call the new error function if no matching prefix function
-        self.no_prefix_parse_fn_error(&token_type);
-
-        // If no matching function, return a placeholder or an error
-        Ok(Box::new(NoneExpression))
+        Ok(left_exp)
     }
+
     /// Important function to parse the identifier
     /// Note that this is an associated `fn`
     fn parse_identifier(
@@ -224,6 +292,30 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Parses infix expressions
+    fn parse_infix_expression(
+        parser: &mut Parser,
+        left_exp: Box<dyn Expression>,
+    ) -> Result<Box<dyn Expression>, ParsingError> {
+        let operator = parser.current_token.clone().literal; // Get the operator as a String
+        let token = parser.current_token.clone(); // The token itself for storing in the struct
+        let precedence = parser.cur_precedence();
+
+        // Consume the infix operator
+        parser.next_token();
+
+        // Parse the expression on the right-hand side of the infix operator
+        let right_exp = parser.parse_expression(precedence)?;
+
+        // Create a new InfixExpression and return it
+        Ok(Box::new(InfixExpression {
+            token,
+            left: left_exp,
+            operator,
+            right: right_exp,
+        }))
+    }
+
     /// Parses prefix expressions
     /// There are two prefix operators in the Monkey programming language: ! and
     /// -. Their usage is pretty much what you’d expect from other languages:
@@ -243,7 +335,11 @@ impl<'a> Parser<'a> {
             right: Box::new(NoneExpression), // Placeholder, will be replaced
         };
 
+        // get the next token after the prefix
+        // e.g. if `-a` then get identifier `a`
+        // if `!b`, then get identifier `b`
         parser.next_token();
+
         match parser.parse_expression(Precedence::Prefix) {
             Ok(right_exp) => Ok(Box::new(PrefixExpression {
                 token: expression.token,
@@ -252,6 +348,34 @@ impl<'a> Parser<'a> {
             })),
             Err(e) => Err(e),
         }
+    }
+
+    /// Precedence Map for infix operators
+    fn precedences() -> HashMap<TokenType, Precedence> {
+        let mut precedences = HashMap::new();
+        precedences.insert(TokenType::EQ, Precedence::Equals);
+        precedences.insert(TokenType::NOT_EQ, Precedence::Equals);
+        precedences.insert(TokenType::LT, Precedence::LessGreater);
+        precedences.insert(TokenType::GT, Precedence::LessGreater);
+        precedences.insert(TokenType::PLUS, Precedence::Sum);
+        precedences.insert(TokenType::MINUS, Precedence::Sum);
+        precedences.insert(TokenType::SLASH, Precedence::Product);
+        precedences.insert(TokenType::ASTERISK, Precedence::Product);
+        precedences
+    }
+
+    fn peek_precedence(&self) -> Precedence {
+        let precedences = Parser::precedences();
+        *precedences
+            .get(&self.peek_token.token_type)
+            .unwrap_or(&Precedence::Lowest)
+    }
+
+    fn cur_precedence(&self) -> Precedence {
+        let precedences = Parser::precedences();
+        *precedences
+            .get(&self.current_token.token_type)
+            .unwrap_or(&Precedence::Lowest)
     }
 
     /// Parses `let` statement
@@ -274,11 +398,6 @@ impl<'a> Parser<'a> {
             },
             value: Box::new(NoneExpression), // placeholder
         };
-
-        println!(
-            "current token is {}, and peek token is {}",
-            self.current_token.literal, self.peek_token.literal
-        );
 
         // Lets peek ahead and see its an IDENT
         if !self.expect_peek(&TokenType::IDENT) {

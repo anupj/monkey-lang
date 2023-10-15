@@ -219,6 +219,51 @@ impl Expression for PrefixExpression {
         self
     }
 }
+
+/// Datatype for Infix Operators
+/// Some examples of infix operators
+/// ```Monkey
+///   5 + 5;
+///   5 - 5;
+///   5 * 5;
+///   5 / 5;
+///   5 > 5;
+///   5 < 5;
+///   5 == 5;
+///   5 != 5;
+/// ```
+/// Don’t be bothered by the 5 here. As with prefix operator expressions, we can
+/// use any expressions to the left and right of the operator. `<expression>
+/// <infix operator> <expression>`
+pub struct InfixExpression {
+    pub token: Token, // The operator token, e.g. +
+    pub left: Box<dyn Expression>,
+    pub operator: String,
+    pub right: Box<dyn Expression>,
+}
+
+impl fmt::Display for InfixExpression {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({} {} {})", self.left, self.operator, self.right)
+    }
+}
+
+impl Node for InfixExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
+
+impl Expression for InfixExpression {
+    fn expression_node(&self) -> String {
+        self.token.literal.clone()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
 /// TODO: Possibly remove `NoneExpression` once
 /// we have Expression parsing working
 pub struct NoneExpression;
