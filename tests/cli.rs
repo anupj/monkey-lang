@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use monkey_lang::ast::*;
 use monkey_lang::lexer::*;
 use monkey_lang::parser::*;
@@ -571,5 +573,81 @@ fn test_integer_literal(exp: &dyn Expression, value: i64) {
         );
     } else {
         panic!("Expression not IntegerLiteral. got={}", exp);
+    }
+}
+
+fn test_identifier(exp: &dyn Expression, value: &str) -> bool {
+    match exp.as_any().downcast_ref::<Identifier>() {
+        Some(ident) => {
+            if ident.value != value {
+                eprintln!("ident.Value not {}. got={}", value, ident.value);
+                return false;
+            }
+
+            if ident.token_literal() != value {
+                eprintln!(
+                    "ident.TokenLiteral not {}. got={}",
+                    value,
+                    ident.token_literal()
+                );
+                return false;
+            }
+
+            true
+        }
+        None => {
+            eprintln!("exp not Identifier. got={}", exp);
+            false
+        }
+    }
+}
+
+fn test_literal_expression(exp: &dyn Expression, expected: &dyn Any) -> bool {
+    match expected.downcast_ref::<i64>() {
+        Some(val) => {
+            test_integer_literal(exp, *val);
+            return true;
+        }
+        None => {}
+    }
+
+    match expected.downcast_ref::<&str>() {
+        Some(val) => return test_identifier(exp, val),
+        None => {}
+    }
+
+    eprintln!("type of exp not handled. got={}", exp);
+    false
+}
+
+fn test_infix_expression(
+    exp: &dyn Expression,
+    left: &dyn Any,
+    operator: &str,
+    right: &dyn Any,
+) -> bool {
+    match exp.as_any().downcast_ref::<InfixExpression>() {
+        Some(op_exp) => {
+            if !test_literal_expression(&*op_exp.left, left) {
+                return false;
+            }
+
+            if op_exp.operator != operator {
+                eprintln!(
+                    "exp.Operator is not '{}'. got={}",
+                    operator, op_exp.operator
+                );
+                return false;
+            }
+
+            if !test_literal_expression(&*op_exp.right, right) {
+                return false;
+            }
+            true
+        }
+        None => {
+            eprintln!("exp is not InfixExpression. got={}", exp);
+            false
+        }
     }
 }

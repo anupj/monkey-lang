@@ -301,7 +301,8 @@ impl<'a> Parser<'a> {
         let token = parser.current_token.clone(); // The token itself for storing in the struct
         let precedence = parser.cur_precedence();
 
-        // Consume the infix operator
+        // Advance to the next token
+        // after the infix operator token
         parser.next_token();
 
         // Parse the expression on the right-hand side of the infix operator
